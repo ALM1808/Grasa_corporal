@@ -4,6 +4,7 @@ import pandas as pd
 import joblib
 import os
 import locale
+import pickle
 
 # Forzar el uso del punto como separador decimal
 locale.setlocale(locale.LC_NUMERIC, "C")
@@ -12,20 +13,19 @@ def normalize_input(value):
     try:
         return float(str(value).replace(",", "."))
     except ValueError:
-        return value  # Devuelve el valor original si no es convertible
+        return value
 
-# Cargar los modelos y preprocesadores
+# Cargar modelo y nombres de columnas
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-#SCALER_PATH = os.path.join(BASE_DIR, "scaler.pkl")
-PREPROCESSOR_PATH = os.path.join(BASE_DIR, "preprocessor.pkl")
 MODEL_PATH = os.path.join(BASE_DIR, "best_model.pkl")
+FEATURE_NAMES_PATH = os.path.join(BASE_DIR, "feature_names.pkl")
 
-
-#scaler = joblib.load(SCALER_PATH)
-preprocessor = joblib.load(PREPROCESSOR_PATH)
 best_model = joblib.load(MODEL_PATH)
 
-# Configurar la aplicación
+with open(FEATURE_NAMES_PATH, "rb") as f:
+    feature_names = pickle.load(f)
+
+# Título de la app
 st.title("Predicción del Porcentaje de Grasa Corporal")
 st.write("Ingrese los datos del usuario para obtener una predicción de su porcentaje de grasa corporal.")
 
@@ -48,10 +48,9 @@ with col2:
     Gender = st.selectbox("Género", ["Male", "Female"])
     Age = int(st.number_input("Edad", min_value=10, max_value=100, value=30, step=1))
 
-
 # Botón para predecir
 if st.button("Predecir Grasa Corporal"):
-    # 1. Crear DataFrame base con inputs del usuario
+    # Crear DataFrame de entrada
     input_data = pd.DataFrame({
         "Max_BPM": [Max_BPM],
         "Resting_BPM": [Resting_BPM],
@@ -63,12 +62,11 @@ if st.button("Predecir Grasa Corporal"):
         "Water_Intake (liters)": [Water_Intake],
         "Workout_Frequency (days/week)": [Workout_Frequency],
         "Experience_Level": [Experience_Level],
-        "Gender": [Gender],
-        "Age": [Age]
+        "Age": [Age],
+        "Gender_Male": [1 if Gender == "Male" else 0]
     })
 
-    # 2. Agregar variables derivadas (igual que en el entrenamiento)
-    input_data["BMI"] = input_data["Weight (kg)"] / (input_data["Height (m)"] ** 2)
+    # Variables derivadas (igual que en entrenamiento)
     input_data["Heart_Rate_Diff"] = input_data["Max_BPM"] - input_data["Resting_BPM"]
     input_data["Calories_per_Hour"] = input_data["Calories_Burned"] / (input_data["Session_Duration (hours)"] + 1e-5)
     input_data["Weight_Height_Ratio"] = input_data["Weight (kg)"] / (input_data["Height (m)"] ** 2)
@@ -79,22 +77,16 @@ if st.button("Predecir Grasa Corporal"):
 
     st.write("🧾 Datos originales y derivados:", input_data)
 
-    # 3. Aplicar preprocesamiento (OneHot + Scaling)
+    # Filtrar columnas esperadas por el modelo
     try:
-        input_transformed = preprocessor.transform(input_data)
-        input_transformed = pd.DataFrame(input_transformed)
-    except ValueError as e:
-        st.error(f"Error en el preprocesamiento: {e}")
+        input_model = input_data[feature_names]
+    except KeyError as e:
+        st.error(f"⚠️ Faltan columnas requeridas por el modelo: {e}")
         st.stop()
 
-    # 4. Reordenar columnas según las usadas en el modelo
-    FEATURE_NAMES_PATH = os.path.join(BASE_DIR, "feature_names.pkl")
-    feature_names = joblib.load(FEATURE_NAMES_PATH)
-    input_transformed = input_transformed.reindex(columns=feature_names, fill_value=0)
+    # Predicción
+    prediction = best_model.predict(input_model)
 
-    # 5. Hacer predicción
-    prediction = best_model.predict(input_transformed)
-
-    # 6. Mostrar resultado
+    # Mostrar resultado
     st.success(f"✅ El porcentaje estimado de grasa corporal es: {prediction[0]:.2f}%")
     
