@@ -6,3 +6,5 @@ pillow
 pandas
 matplotlib
 streamlit_drawable_canvas
+gspread
+oauth2client
