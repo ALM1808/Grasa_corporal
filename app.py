@@ -89,4 +89,26 @@ if st.button("Predecir Grasa Corporal"):
 
     # Mostrar resultado
     st.success(f"✅ El porcentaje estimado de grasa corporal es: {prediction[0]:.2f}%")
-    
+
+    grasa = prediction[0]
+
+    if Gender == "Male":
+        if grasa < 10:
+            st.info("📉 Por debajo del rango saludable para hombres.")
+        elif grasa < 20:
+            st.success("✅ Nivel saludable de grasa corporal para hombres.")
+        elif grasa < 25:
+            st.warning("⚠️ Indicios de sobrepeso según el porcentaje de grasa.")
+        else:
+            st.error("🚨 Nivel de grasa elevado (obesidad) para hombres.")
+
+    elif Gender == "Female":
+        if grasa < 20:
+            st.info("📉 Por debajo del rango saludable para mujeres.")
+        elif grasa < 30:
+            st.success("✅ Nivel saludable de grasa corporal para mujeres.")
+        elif grasa < 35:
+            st.warning("⚠️ Indicios de sobrepeso según el porcentaje de grasa.")
+        else:
+            st.error("🚨 Nivel de grasa elevado (obesidad) para mujeres.")
+        
