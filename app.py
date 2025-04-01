@@ -5,6 +5,9 @@ import joblib
 import os
 import locale
 import pickle
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+import datetime
 
 # Forzar el uso del punto como separador decimal
 locale.setlocale(locale.LC_NUMERIC, "C")
@@ -47,6 +50,7 @@ with col2:
     Experience_Level = int(st.number_input("Nivel de Experiencia (años)", min_value=0, value=2, step=1))
     Gender = st.selectbox("Género", ["Male", "Female"])
     Age = int(st.number_input("Edad", min_value=10, max_value=100, value=30, step=1))
+
 
 # Botón para predecir
 if st.button("Predecir Grasa Corporal"):
@@ -111,4 +115,3 @@ if st.button("Predecir Grasa Corporal"):
             st.warning("⚠️ Indicios de sobrepeso según el porcentaje de grasa.")
         else:
             st.error("🚨 Nivel de grasa elevado (obesidad) para mujeres.")
-        
