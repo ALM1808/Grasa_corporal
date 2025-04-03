@@ -1,0 +1,7 @@
+env/
+__pycache__/
+*.pyc
+.DS_Store
+- *.pkl
++ !best_model.pkl
++ !feature_names.pkl

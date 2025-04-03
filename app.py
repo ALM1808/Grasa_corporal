@@ -9,6 +9,19 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import datetime
 
+# Conexión a Google Sheets
+import json
+from oauth2client.service_account import ServiceAccountCredentials
+
+scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+creds_dict = st.secrets["gspread"]
+creds = ServiceAccountCredentials.from_json_keyfile_dict(dict(creds_dict), scope)
+client = gspread.authorize(creds)
+sheet = client.open("Historial_Grasa_Corporal").sheet1
+
+# Inicio de app Streamlit
+st.title("Predicción del Porcentaje de Grasa Corporal")
+
 # Forzar el uso del punto como separador decimal
 locale.setlocale(locale.LC_NUMERIC, "C")
 
@@ -53,6 +66,7 @@ with col2:
 
 
 # Botón para predecir
+nombre = st.text_input("👤 Nombre o identificador del usuario", value="usuario1")
 if st.button("Predecir Grasa Corporal"):
     # Crear DataFrame de entrada
     input_data = pd.DataFrame({
@@ -115,3 +129,43 @@ if st.button("Predecir Grasa Corporal"):
             st.warning("⚠️ Indicios de sobrepeso según el porcentaje de grasa.")
         else:
             st.error("🚨 Nivel de grasa elevado (obesidad) para mujeres.")
+    registro = [
+    nombre,
+    datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    round(prediction[0], 2),
+    Gender, Age, Weight, Height,
+    Max_BPM, Resting_BPM, Avg_BPM,
+    Calories_Burned, Session_Duration,
+    Water_Intake, Workout_Frequency, Experience_Level
+    ]
+
+    # Escribir en la hoja
+    st.write("📤 Intentando guardar en Google Sheets...")
+
+    try:
+        sheet.append_row(registro)
+        st.success("✅ Predicción guardada en Google Sheets.")
+    except Exception as e:
+        st.error(f"❌ Error al guardar en Google Sheets: {e}")
+
+    # Leer todos los registros
+    records = sheet.get_all_records()
+    df_historial = pd.DataFrame(records)
+
+    # Filtrar por usuario
+    df_usuario = df_historial[df_historial["Nombre"] == nombre]
+
+    if not df_usuario.empty:
+        st.subheader("📈 Historial de predicciones")
+        st.dataframe(df_usuario)
+        
+        # Descargar historial
+        csv_data = df_usuario.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="⬇️ Descargar historial como CSV",
+            data=csv_data,
+            file_name=f"historial_{nombre}.csv",
+            mime='text/csv',
+        )
+    else:
+        st.info("ℹ️ Aún no hay registros para este usuario.")
